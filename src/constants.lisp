@@ -11,6 +11,3 @@
 (defparameter +discord-api-version+ 10
   "The version of the Discord API that Warfare is currently targeting.")
 
-(defmacro defintent (intent-name)
-  "Define an intent."
-  `(defconstant ,intent-name (ash 1 ,shift)))
