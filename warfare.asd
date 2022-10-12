@@ -4,18 +4,23 @@
   :author "Alexander \"Dr. Bluefall\" Bisono <sbisonol@gmail.com>"
   :license "LGPL-3.0-or-later"
   :depends-on (:flexi-streams
-	       :drakma
-	       :websocket-driver
-	       :shasht
-	       :alexandria)
+           :drakma
+           :websocket-driver
+           :shasht
+           :alexandria)
   :components
   ((:module "src"
     :serial t
     :components ((:file "constants")
-		 (:module "classes"
-		  :serial t
-		  :components ((:file "bot")))
-		 (:module "http"
-		  :serial t
-		  :components ((:file "http")))
-		 (:file "lib")))))
+         (:file "conditions")
+         (:module "classes"
+          :serial t
+          :components ((:file "user")
+                   (:file "bot")))
+         (:module "http"
+          :serial t
+          :components ((:file "http")))
+         (:module "gateway"
+          :serial t
+          :components ((:file "gateway")))
+         (:file "lib")))))
