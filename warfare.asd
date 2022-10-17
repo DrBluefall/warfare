@@ -7,7 +7,10 @@
                :drakma
                :websocket-driver
                :shasht
-               :alexandria)
+               :alexandria
+               :queues.simple-cqueue
+               :cl-async
+               :log4cl)
   :components
   ((:module "src"
     :serial t

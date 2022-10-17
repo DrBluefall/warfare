@@ -1,7 +1,8 @@
 (defpackage :warfare.constants
   (:documentation "Warfare constants.")
   (:use :cl)
-  (:import-from :alexandria :define-constant))
+  (:import-from :alexandria :define-constant)
+  (:export :+base-url+ :+discord-api-version+))
 (in-package :warfare.constants)
 
 (define-constant +base-url+ "https://discord.com/api"

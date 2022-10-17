@@ -4,7 +4,10 @@
    :<bot>
    :bot-token
    :<bot-websocket-info>
-   :bot-ws-info))
+   :bot-ws-info
+   :bot-ws-event-queue
+   :bot-ws-connection
+   :bot-ws-url))
 (in-package :warfare.classes.bot)
 
 (defclass <bot-websocket-info> ()
@@ -24,7 +27,13 @@
     :documentation "A timestamp representing how long until the the limit on gateway connections resets.")
    (max-concurrents :accessor bot-ws-max-concurrents
         :initarg :max-concurrents
-        :documentation "The maximum number of IDENTIFY requests that can be sent every 5 seconds.")))
+        :documentation "The maximum number of IDENTIFY requests that can be sent every 5 seconds.")
+   (queue :accessor bot-ws-event-queue
+          :initform (queues:make-queue :simple-cqueue)
+          :documentation "The queue where events recieved over the websocket are placed.")
+   (seq-number :accessor bot-ws-sequence-number
+               :initform nil
+               :documentation "The last sequence number sent to us by Discord.")))
 
 (defclass <bot> ()
   ((token :initarg :token

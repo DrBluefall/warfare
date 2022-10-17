@@ -1,6 +1,5 @@
 (defpackage :warfare.gateway
-      (:use :cl)
-      (:import-from :warfare.classes.bot :<bot> :<bot-websocket-info> :bot-ws-info)
+      (:use :cl :warfare.classes.gateway :warfare.classes.bot)
       (:import-from :warfare.http :send-request)
       (:documentation "Interacting with the Discord Websocket."))
 (in-package :warfare.gateway)
@@ -22,5 +21,49 @@
 (defun connect-to-discord (bot)
   "Open a gateway connection to Discord."
   (declare (optimize (speed 0) (safety 3) (debug 3))
-     (type <bot> bot)
-     (ignore bot)))
+     (type <bot> bot))
+  (let* ((wsinfo (bot-ws-info bot))
+         (client (setf (bot-ws-connection wsinfo)
+                       (wsd:make-client
+                        (format nil "~s/?v=~d&encoding=json"
+                                (bot-ws-url wsinfo)
+                                warfare.constants:+discord-api-version+))))
+         (event-queue (bot-ws-event-queue wsinfo))
+         (heartbeat-event)
+         (waiting-for-hb-ack nil))
+    (wsd:on :message client
+            (lambda (ev)
+              (log:debug "Event recieved!~%")
+              (let* ((parsed (shasht:read-json ev))
+                     (event (deserialize-gateway-event ev)))
+                (log:debug "Event: ~s~%json: ~s~%" event parsed)
+                (typecase event
+                  ;; On <event-hello>, we set up an `as:delay'
+                  ;; to fire the initial heartbeat, so that we
+                  ;; can follow the specified
+                  ;; "heartbeat_interval * jitter" that's
+                  ;; required from initial connections to the
+                  ;; gateway. From there, set up an
+                  ;; `as:interval' that'll keep firing
+                  ;; heartbeats so long as we're still connected
+                  ;; to the gateway.
+                  ;;
+                  ;; How do we make sure it stops beating when
+                  ;; we disconnect? Simple (hopefully), just
+                  ;; assign the event to a variable in the
+                  ;; outermost `let*', then use that in `wsd:on'
+                  ;; with `:close'.
+                  ;;
+                  ;; *However*, we will have to check if
+                  ;; `heartbeat-event' is a function or event,
+                  ;; as they have to be handled differently (the
+                  ;; former is `funcall'ed, the latter is
+                  ;; `remove-event'..ed. YES.)
+                  (<event-hello> (setf heartbeat-event
+                                       (as:with-delay ((* (hello-heartbeat-interval event)
+                                                          (random 1.0d0)))
+                                         (let ((heartbeat
+                                                 (make-instance '<event-heartbeat>
+                                                                :seq-number (bot-ws-sequence-number wsinfo))))
+                                           (wsd:send client (serialize-gateway-event heartbeat))
+                                           (setf waiting-for-hb-ack t)))))))))))
