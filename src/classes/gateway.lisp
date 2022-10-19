@@ -33,10 +33,10 @@
 (defgeneric serialize-gateway-event (ev)
   (:documentation "Serialize a gateway event into JSON.")
   (:method ((ev <event-heartbeat>))
-    (shasht:write-json* `(("op" . 1) ("d" . ,(heartbeat-sequence-number ev))) :stream nil
+    (shasht:write-json* `(("op" . 1) ("d" . ,(heartbeat-sequence-number ev)))
+                        :stream nil
                         :alist-as-object t
-                        :false-values '(nil :null))
-    ))
+                        :false-values '(nil :null))))
 
 (defun deserialize-gateway-event (ev)
   "Parse a gateway event into a proper class."
