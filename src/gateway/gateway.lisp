@@ -21,11 +21,11 @@
 (defun connect-to-discord (bot)
   "Open a gateway connection to Discord."
   (declare (optimize (speed 0) (safety 3) (debug 3))
-     (type <bot> bot))
+           (type <bot> bot))
   (let* ((wsinfo (bot-ws-info bot))
          (client (setf (bot-ws-connection wsinfo)
                        (wsd:make-client
-                        (format nil "~s/?v=~d&encoding=json"
+                        (format nil "~a/?v=~d&encoding=json"
                                 (bot-ws-url wsinfo)
                                 warfare.constants:+discord-api-version+))))
          (event-queue (bot-ws-event-queue wsinfo))
@@ -35,7 +35,7 @@
             (lambda (ev)
               (log:debug "Event recieved!~%")
               (let* ((parsed (shasht:read-json ev))
-                     (event (deserialize-gateway-event ev)))
+                     (event (deserialize-gateway-event parsed)))
                 (log:debug "Event: ~s~%json: ~s~%" event parsed)
                 (typecase event
                   ;; On <event-hello>, we set up an `as:delay'
@@ -59,11 +59,38 @@
                   ;; as they have to be handled differently (the
                   ;; former is `funcall'ed, the latter is
                   ;; `remove-event'..ed. YES.)
-                  (<event-hello> (setf heartbeat-event
-                                       (as:with-delay ((* (hello-heartbeat-interval event)
-                                                          (random 1.0d0)))
-                                         (let ((heartbeat
-                                                 (make-instance '<event-heartbeat>
-                                                                :seq-number (bot-ws-sequence-number wsinfo))))
-                                           (wsd:send client (serialize-gateway-event heartbeat))
-                                           (setf waiting-for-hb-ack t)))))))))))
+                  (<event-hello>
+                   (setf heartbeat-event
+                         (as:with-delay ((* (hello-heartbeat-interval event)
+                                            (random 1.0d0 #| the aformentioned 'jitter' |# )))
+                           (let ((heartbeat
+                                   (make-instance '<event-heartbeat>
+                                                  :seq-number (bot-ws-sequence-number wsinfo))))
+                             (wsd:send client (serialize-gateway-event heartbeat))
+                             (setf waiting-for-hb-ack t)
+                             (setf heartbeat-event
+                                   (as:with-interval ((hello-heartbeat-interval event))
+                                     (let ((heartbeat
+                                             (make-instance '<event-heartbeat>
+                                                            :seq-number (bot-ws-sequence-number wsinfo))))
+                                       (wsd:send client (serialize-gateway-event heartbeat))
+                                       (setf waiting-for-hb-ack t)))))))
+                   ;; Now that the heartbeat loop is set up, now comes the
+                   ;; interesting part, sending an IDENTIFY payload.
+                   ;;
+                   ;; ref: https://discord.com/developers/docs/topics/gateway-events#identify
+                   (let ((identify (make-instance '<event-identify>
+                                                  :token (bot-token bot)
+                                                  :intent-int (bot-intents bot))))))
+                  (<ev-heartbeat-ack> (setf waiting-for-hb-ack nil))
+
+                  ;; ...we don't know what this event is, so we're gonna log it.
+                  (t (log:warn "Unknown event recieved: "
+                               (event-opcode event)
+                               (event-type event)
+                               (event-data event)
+                               (event-seq-number event)))))))
+    (wsd:on :close client
+            (lambda (&key code reason)
+              (log:warn "Connection closed (~d): ~a" code reason)))
+    (wsd:start-connection client)))

@@ -3,6 +3,7 @@
   (:export
    :<bot>
    :bot-token
+   :bot-intents
    :<bot-websocket-info>
    :bot-ws-info
    :bot-ws-event-queue
