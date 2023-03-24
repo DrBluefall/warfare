@@ -9,8 +9,6 @@
                :shasht
                :alexandria
                :queues.simple-cqueue
-               :cl-async
-               :blackbird
                :log4cl)
   :components
   ((:module "src"

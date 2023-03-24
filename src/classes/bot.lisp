@@ -8,12 +8,16 @@
    :bot-ws-info
    :bot-ws-event-queue
    :bot-ws-connection
-   :bot-ws-url))
+   :bot-ws-url
+   :bot-ws-close-code))
 (in-package :warfare.classes.bot)
 
 (defclass <bot-websocket-info> ()
   ((conn :accessor bot-ws-connection
    :documentation "The current websocket connection to Discord.")
+   (close-code :accessor bot-ws-close-code
+               :initform nil
+               :documentation "The close code for this websocket connection.")
    (url :accessor bot-ws-url
   :initarg :url
   :documentation "The url required to connect to the gateway.")
@@ -34,7 +38,10 @@
           :documentation "The queue where events recieved over the websocket are placed.")
    (seq-number :accessor bot-ws-sequence-number
                :initform nil
-               :documentation "The last sequence number sent to us by Discord.")))
+               :documentation "The last sequence number sent to us by Discord.")
+   (heartbeat-thread :accessor bot-ws-heartbeat-thread
+                     :initform nil
+                     :documentation "The thread that sends heartbeats through this websocket connection.")))
 
 (defclass <bot> ()
   ((token :initarg :token

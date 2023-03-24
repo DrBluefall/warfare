@@ -121,4 +121,4 @@
         (10 (make-event '<event-hello> :heartbeat-interval (gethash "heartbeat_interval" data)))
         ;; Recognition of a heartbeat.
         (11 (make-event '<event-heartbeat-ack>))
-        (default (make-event '<gateway-event>))))))
+        (t (make-event '<gateway-event>))))))
